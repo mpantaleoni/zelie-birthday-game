@@ -536,125 +536,242 @@ async function playSong() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  DRAWING — BACKGROUND  (Birthday + Italy)
+//  DRAWING — BACKGROUND  (Cartoon Birthday + Italy)
 // ══════════════════════════════════════════════════════════
 
-// Static positions (deterministic, not random, so they don't jump)
-const STARS_BG = [
-  {rx:.05,ry:.06,r:1.5},{rx:.18,ry:.03,r:1.0},{rx:.32,ry:.09,r:2.0},
-  {rx:.45,ry:.04,r:1.5},{rx:.60,ry:.08,r:1.0},{rx:.72,ry:.02,r:2.0},
-  {rx:.85,ry:.05,r:1.5},{rx:.93,ry:.11,r:1.0},{rx:.10,ry:.15,r:1.0},
-  {rx:.25,ry:.19,r:1.5},{rx:.38,ry:.13,r:1.0},{rx:.53,ry:.17,r:2.0},
-  {rx:.66,ry:.14,r:1.0},{rx:.79,ry:.20,r:1.5},{rx:.91,ry:.16,r:1.0},
-  {rx:.14,ry:.23,r:1.0},{rx:.56,ry:.25,r:1.5},{rx:.81,ry:.23,r:1.0},
+// Static positions (deterministic — no per-frame random)
+const BALLOONS_BG = [
+  { rx:.06, ry:.30, col:'#009246', r:16 },
+  { rx:.14, ry:.19, col:'#FFFFFF', r:13 },
+  { rx:.84, ry:.23, col:'#CE2B37', r:16 },
+  { rx:.92, ry:.34, col:'#FFD700', r:14 },
+  { rx:.78, ry:.15, col:'#FF69B4', r:12 },
+  { rx:.50, ry:.11, col:'#9B59B6', r:11 },
 ];
 
-const BALLOONS_BG = [
-  { rx:.06, ry:.32, col:'#009246', r:15 }, // Italian green
-  { rx:.17, ry:.21, col:'#FFFFFF', r:12 }, // Italian white
-  { rx:.84, ry:.26, col:'#CE2B37', r:15 }, // Italian red
-  { rx:.93, ry:.37, col:'#FFD700', r:12 }, // gold
-  { rx:.50, ry:.17, col:'#FF69B4', r:11 }, // pink birthday
+const CONFETTI_BG = [
+  {rx:.08,ry:.44,col:'#E74C3C',sz:7,rot:.30,sh:'r'},
+  {rx:.16,ry:.57,col:'#27AE60',sz:6,rot:1.10,sh:'c'},
+  {rx:.23,ry:.39,col:'#2980B9',sz:8,rot:.70,sh:'d'},
+  {rx:.31,ry:.49,col:'#FFD700',sz:7,rot:1.50,sh:'r'},
+  {rx:.41,ry:.36,col:'#E91E8C',sz:6,rot:.20,sh:'c'},
+  {rx:.55,ry:.51,col:'#E74C3C',sz:8,rot:.90,sh:'d'},
+  {rx:.64,ry:.41,col:'#27AE60',sz:7,rot:1.80,sh:'r'},
+  {rx:.72,ry:.54,col:'#2980B9',sz:6,rot:.40,sh:'c'},
+  {rx:.81,ry:.44,col:'#FFD700',sz:8,rot:1.20,sh:'d'},
+  {rx:.89,ry:.58,col:'#E91E8C',sz:7,rot:.60,sh:'r'},
+  {rx:.12,ry:.31,col:'#E74C3C',sz:5,rot:2.10,sh:'c'},
+  {rx:.28,ry:.63,col:'#27AE60',sz:7,rot:.80,sh:'d'},
+  {rx:.47,ry:.28,col:'#9B59B6',sz:6,rot:1.40,sh:'r'},
+  {rx:.68,ry:.61,col:'#E74C3C',sz:8,rot:.10,sh:'c'},
+  {rx:.91,ry:.71,col:'#27AE60',sz:6,rot:1.90,sh:'d'},
+];
+
+const STARS5_BG = [
+  {rx:.08,ry:.08,r:9, col:'#FFD700'},
+  {rx:.25,ry:.05,r:7, col:'#FF69B4'},
+  {rx:.43,ry:.09,r:8, col:'#FFD700'},
+  {rx:.62,ry:.06,r:7, col:'#FF69B4'},
+  {rx:.77,ry:.10,r:9, col:'#FFD700'},
+  {rx:.90,ry:.07,r:7, col:'#FF69B4'},
+  {rx:.35,ry:.14,r:6, col:'#FFD700'},
 ];
 
 function drawBg() {
   const w = canvas.width, h = canvas.height;
-  const now = Date.now() * 0.001; // seconds for gentle animation
+  const now = Date.now() * 0.001;
 
-  // ── Evening birthday sky ──────────────────────────────
-  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.78);
-  sky.addColorStop(0,    '#0d0d3b'); // deep midnight blue
-  sky.addColorStop(0.28, '#7B1A45'); // deep wine/magenta
-  sky.addColorStop(0.58, '#C94A10'); // warm orange
-  sky.addColorStop(1,    '#F0BA30'); // golden horizon
+  // ── Bright cartoon sky ────────────────────────────────
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.76);
+  sky.addColorStop(0,   '#1565C0');
+  sky.addColorStop(1,   '#64B5F6');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, h * 0.78);
+  ctx.fillRect(0, 0, w, h * 0.76);
 
-  // ── Italian dark-green ground ─────────────────────────
-  const grd = ctx.createLinearGradient(0, h*.78, 0, h);
-  grd.addColorStop(0, '#1B4A0A');
-  grd.addColorStop(1, '#0E2E06');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, h*.78, w, h);
+  // ── Cartoon sun ───────────────────────────────────────
+  drawCartoonSun(w * 0.84, h * 0.10, Math.min(w, h) * 0.058);
 
-  // ── Moon ─────────────────────────────────────────────
-  ctx.save();
-  ctx.shadowColor = '#FFF9C4'; ctx.shadowBlur = 22;
-  ctx.fillStyle = '#FFFDE7';
-  ctx.beginPath(); ctx.arc(w-44, 58, 20, 0, Math.PI*2); ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(195,180,130,0.28)';
-  ctx.beginPath(); ctx.arc(w-52, 52, 5, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(w-37, 62, 3, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
+  // ── Cartoon clouds ────────────────────────────────────
+  drawCartoonCloud(w * 0.18, h * 0.13, 30);
+  drawCartoonCloud(w * 0.62, h * 0.08, 24);
 
-  // ── Twinkling stars ───────────────────────────────────
-  STARS_BG.forEach(s => {
-    const tw = 0.55 + 0.45 * Math.sin(now * 2.1 + s.rx * 12);
-    ctx.fillStyle = `rgba(255,255,210,${tw.toFixed(2)})`;
-    ctx.beginPath(); ctx.arc(s.rx*w, s.ry*h, s.r, 0, Math.PI*2); ctx.fill();
-  });
+  // ── 5-pointed stars ───────────────────────────────────
+  STARS5_BG.forEach(s => drawStar5(s.rx*w, s.ry*h, s.r, s.col));
 
-  // ── Birthday bunting (below HUD ~y58) ─────────────────
+  // ── Ground + hills ────────────────────────────────────
+  drawGround(w, h);
+
+  // ── Round Colosseum ───────────────────────────────────
+  drawColosseum(w, h);
+
+  // ── Birthday bunting ──────────────────────────────────
   drawBunting(w, 58);
 
-  // ── Swaying background balloons ───────────────────────
+  // ── Swaying balloons ──────────────────────────────────
   ctx.save();
-  ctx.globalAlpha = 0.68;
+  ctx.globalAlpha = 0.85;
   BALLOONS_BG.forEach((b, i) => {
     const sway = Math.sin(now * 0.75 + i * 1.3) * 5;
     drawBalloon(b.rx*w + sway, b.ry*h, b.col, b.r);
   });
   ctx.restore();
 
-  // ── Colosseum silhouette ──────────────────────────────
-  drawColosseum(w, h);
+  // ── Confetti pieces ───────────────────────────────────
+  CONFETTI_BG.forEach(c =>
+    drawConfettiPiece(c.rx*w, c.ry*h, c.rot, c.col, c.sz, c.sh));
 
   // ── Italian flag strip ────────────────────────────────
-  const fh = 13, fy = h - fh;
+  const fh = 11, fy = h - fh;
   ctx.fillStyle = '#009246'; ctx.fillRect(0,     fy, w/3, fh);
   ctx.fillStyle = '#FFFFFF'; ctx.fillRect(w/3,   fy, w/3, fh);
   ctx.fillStyle = '#CE2B37'; ctx.fillRect(w*2/3, fy, w/3, fh);
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(0, fy, w, fh);
+}
+
+function drawCartoonSun(x, y, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  // Rays (alternating long/short)
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2 - Math.PI / 12;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a)*(r+4),  Math.sin(a)*(r+4));
+    ctx.lineTo(Math.cos(a)*(r+(i%2===0?18:11)), Math.sin(a)*(r+(i%2===0?18:11)));
+    ctx.stroke();
+  }
+  // Body
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2);
+  ctx.fillStyle = '#FFE033'; ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.stroke();
+  // Sunglasses
+  ctx.fillStyle = '#1A1A1A';
+  ctx.beginPath(); ctx.ellipse(-r*.27,-r*.12,r*.22,r*.17,-.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( r*.27,-r*.12,r*.22,r*.17, .2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-r*.05,-r*.12); ctx.lineTo(r*.05,-r*.12); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.ellipse(-r*.30,-r*.17,r*.08,r*.06,-.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( r*.24,-r*.17,r*.08,r*.06, .2,0,Math.PI*2); ctx.fill();
+  // Smile
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(0, r*.10, r*.32, 0.15, Math.PI-0.15); ctx.stroke();
+  // Rosy cheeks
+  ctx.fillStyle = 'rgba(255,80,60,0.28)';
+  ctx.beginPath(); ctx.ellipse(-r*.42,r*.08,r*.14,r*.10,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( r*.42,r*.08,r*.14,r*.10,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawCartoonCloud(x, y, r) {
+  ctx.save();
+  const puffs = [
+    [0,0,r], [-r*.70,r*.22,r*.72], [r*.70,r*.22,r*.72],
+    [-r*.38,-r*.36,r*.60], [r*.38,-r*.36,r*.60],
+  ];
+  // Fill pass
+  ctx.fillStyle = '#FFFFFF';
+  puffs.forEach(([dx,dy,pr]) => {
+    ctx.beginPath(); ctx.arc(x+dx, y+dy, pr, 0, Math.PI*2); ctx.fill();
+  });
+  // Outline pass
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
+  puffs.forEach(([dx,dy,pr]) => {
+    ctx.beginPath(); ctx.arc(x+dx, y+dy, pr, 0, Math.PI*2); ctx.stroke();
+  });
+  // Inner fill to hide interior outline segments
+  ctx.fillStyle = '#FFFFFF';
+  puffs.forEach(([dx,dy,pr]) => {
+    ctx.beginPath(); ctx.arc(x+dx, y+dy, pr*0.88, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawGround(w, h) {
+  const gy = h * 0.76;
+  ctx.fillStyle = '#4CAF50'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(0, gy + h*.03);
+  ctx.quadraticCurveTo(w*.15, gy - h*.07, w*.30, gy + h*.01);
+  ctx.quadraticCurveTo(w*.50, gy - h*.11, w*.70, gy + h*.01);
+  ctx.quadraticCurveTo(w*.85, gy - h*.06, w,     gy + h*.02);
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Darker bottom strip
+  ctx.fillStyle = '#388E3C';
+  ctx.beginPath(); ctx.rect(0, h*0.89, w, h*0.11); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.strokeRect(0, h*0.89, w, h*0.11);
+}
+
+function drawConfettiPiece(x, y, rot, col, sz, sh) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+  if (sh === 'r') {
+    ctx.fillRect(-sz/2,-sz/3,sz,sz*.65); ctx.strokeRect(-sz/2,-sz/3,sz,sz*.65);
+  } else if (sh === 'c') {
+    ctx.beginPath(); ctx.arc(0,0,sz/2,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(0,-sz/2); ctx.lineTo(sz/2,0); ctx.lineTo(0,sz/2); ctx.lineTo(-sz/2,0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawStar5(x, y, r, col) {
+  ctx.save();
+  ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI / 5) - Math.PI / 2;
+    const rad = i % 2 === 0 ? r : r * 0.40;
+    i === 0
+      ? ctx.moveTo(x + Math.cos(a)*rad, y + Math.sin(a)*rad)
+      : ctx.lineTo(x + Math.cos(a)*rad, y + Math.sin(a)*rad);
+  }
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
 }
 
 function drawBunting(w, topY) {
   const cols = ['#009246','#FFFFFF','#CE2B37','#FFD700','#FF69B4',
                 '#CE2B37','#FFFFFF','#009246','#FFD700','#FF69B4'];
   const n = cols.length, sw = w / n, fh = 26;
-
-  // Drooping string
-  ctx.strokeStyle = 'rgba(50,25,5,0.55)';
-  ctx.lineWidth = 1.5;
+  // String
+  ctx.strokeStyle = '#5D3A1A'; ctx.lineWidth = 2;
   ctx.beginPath();
   for (let i = 0; i <= n*4; i++) {
     const t = i / (n*4);
     const sx = t * w;
-    const sy = topY + Math.sin(t * Math.PI * n) * 1.5 + Math.sin(t * Math.PI) * 5;
+    const sy = topY + Math.sin(t*Math.PI*n)*1.5 + Math.sin(t*Math.PI)*5;
     i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
   }
   ctx.stroke();
-
-  // Triangular flags
+  // Flags
   cols.forEach((col, i) => {
     const x1 = i*sw, x2 = (i+1)*sw, mx = (x1+x2)/2;
     const sag = Math.sin(((i+.5)/n) * Math.PI) * 5;
     const ty = topY + sag;
-    ctx.fillStyle = col;
+    ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x1+sw*.12, ty); ctx.lineTo(x2-sw*.12, ty); ctx.lineTo(mx, ty+fh);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.7; ctx.stroke();
+    ctx.closePath(); ctx.fill(); ctx.stroke();
   });
 }
 
 function drawBalloon(x, y, col, r) {
-  ctx.fillStyle = col;
-  ctx.beginPath(); ctx.ellipse(x, y, r, r*1.28, 0, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.36)';
-  ctx.beginPath(); ctx.ellipse(x-r*.28, y-r*.3, r*.27, r*.2, -.35, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(x, y+r*1.35, r*.16, 0, Math.PI*2); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
+  ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.ellipse(x, y, r, r*1.28, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.beginPath(); ctx.ellipse(x-r*.28, y-r*.3, r*.27, r*.20, -.35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y+r*1.35, r*.16, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(x, y+r*1.5);
   ctx.bezierCurveTo(x+r*.9, y+r*2.5, x-r*.9, y+r*3.5, x, y+r*4.3);
@@ -662,40 +779,82 @@ function drawBalloon(x, y, col, r) {
 }
 
 function drawColosseum(w, h) {
-  const cx = w/2, baseY = h*0.80, bw = w*0.86, bh = h*0.28;
-  const stone = '#B8762A', dark = 'rgba(8,4,1,0.80)';
+  const cx     = w / 2;
+  const baseY  = h * 0.84;
+  const rx     = w * 0.43;       // horizontal half-width of the oval
+  const ry     = h * 0.056;      // vertical rise of the curved top
+  const wallH  = h * 0.175;      // height of the wall section below the oval
+  const topY   = baseY - wallH;
+  const stone  = '#D4A843';
+  const dark   = '#1E0F00';
 
-  // Main body
+  // ── Filled body: walls + oval top ────────────────────
   ctx.fillStyle = stone;
-  ctx.fillRect(cx-bw/2, baseY-bh, bw, bh);
+  ctx.beginPath();
+  ctx.moveTo(cx - rx, baseY);
+  ctx.lineTo(cx - rx, topY);
+  // Arc from left (angle=π) to right (angle=0) going clockwise = over the top
+  ctx.ellipse(cx, topY, rx, ry, 0, Math.PI, 0, false);
+  ctx.lineTo(cx + rx, baseY);
+  ctx.closePath();
+  ctx.fill();
 
-  // Top battlements
-  const nb = 20, bsW = bw/nb, bsH = bsW*0.85;
-  for (let i = 0; i < nb; i++)
-    if (i%2===0) { ctx.fillStyle=stone; ctx.fillRect(cx-bw/2+i*bsW, baseY-bh-bsH, bsW*.75, bsH); }
+  // ── Three tiers of arches ─────────────────────────────
+  const t1 = topY + wallH * 0.36;
+  const t2 = topY + wallH * 0.68;
 
-  // Horizontal dividers
-  ctx.fillStyle = 'rgba(70,35,5,0.32)';
-  ctx.fillRect(cx-bw/2, baseY-bh*.52, bw, bh*.026);
-  ctx.fillRect(cx-bw/2, baseY-bh*.76, bw, bh*.020);
-
-  // Bottom row — 9 arches
-  const g1 = bw/9.6;
-  for (let i = 0; i < 9; i++) {
-    const ax=cx-bw/2+g1*(i+.8), ar=g1*.31, ay=baseY-bh*.40;
-    ctx.fillStyle=dark;
-    ctx.beginPath(); ctx.rect(ax-ar,ay,ar*2,bh*.36); ctx.fill();
-    ctx.beginPath(); ctx.arc(ax,ay,ar,Math.PI,0);    ctx.fill();
+  function archRow(n, y1, y2, span) {
+    const step = (span * 2) / n;
+    for (let i = 0; i < n; i++) {
+      const px = cx - span + step * (i + 0.5);
+      const dc = Math.abs((i + 0.5) / n - 0.5) * 2;   // 0=centre 1=edge
+      const aw = step * 0.54 * (1 - dc * 0.22);
+      const ah = (y2 - y1) * 0.80;
+      const ar = aw / 2;
+      const ay = y2 - ah;
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.moveTo(px-ar, y2); ctx.lineTo(px-ar, ay+ar);
+      ctx.arc(px, ay+ar, ar, Math.PI, 0, false);
+      ctx.lineTo(px+ar, y2);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px-ar, y2); ctx.lineTo(px-ar, ay+ar);
+      ctx.arc(px, ay+ar, ar, Math.PI, 0, false);
+      ctx.lineTo(px+ar, y2);
+      ctx.stroke();
+    }
   }
 
-  // Upper row — 7 arches
-  const g2 = bw/7.6;
-  for (let i = 0; i < 7; i++) {
-    const ax=cx-bw/2+g2*(i+.8), ar=g2*.28, ay=baseY-bh*.70;
-    ctx.fillStyle=dark;
-    ctx.beginPath(); ctx.rect(ax-ar,ay,ar*2,bh*.20); ctx.fill();
-    ctx.beginPath(); ctx.arc(ax,ay,ar,Math.PI,0);    ctx.fill();
+  archRow(7,  topY, t1,    rx * 0.92);
+  archRow(9,  t1,   t2,    rx * 0.96);
+  archRow(11, t2,   baseY, rx * 0.99);
+
+  // ── Tier divider lines ────────────────────────────────
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-rx*.97,t1); ctx.lineTo(cx+rx*.97,t1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-rx*.99,t2); ctx.lineTo(cx+rx*.99,t2); ctx.stroke();
+
+  // ── Battlements along oval top ────────────────────────
+  const nBat = 18;
+  for (let i = 0; i <= nBat; i++) {
+    if (i % 2 !== 0) continue;
+    const angle = Math.PI + (i / nBat) * Math.PI;
+    const bx = cx + Math.cos(angle) * rx;
+    const by = topY + Math.sin(angle) * ry;
+    ctx.fillStyle = stone; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(bx-4.5, by-11, 9, 11); ctx.fill(); ctx.stroke();
   }
+
+  // ── Bold outer outline (drawn last on top) ────────────
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - rx, baseY);
+  ctx.lineTo(cx - rx, topY);
+  ctx.ellipse(cx, topY, rx, ry, 0, Math.PI, 0, false);
+  ctx.lineTo(cx + rx, baseY);
+  ctx.stroke();
 }
 
 // ══════════════════════════════════════════════════════════
