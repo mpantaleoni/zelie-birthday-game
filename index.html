@@ -482,27 +482,57 @@ function sfxLevelUp() {
   tone(523,t+.00,.08); tone(659,t+.10,.08); tone(784,t+.20,.08); tone(1047,t+.30,.20);
 }
 
-// SONG — async so we can await resume(); MUST be called from a tap handler
+// SONG — 3-voice arrangement: melody + harmony (thirds) + bass
 async function playSong() {
   const ac = initAC();
-  // Await resume — this works when called directly from a user gesture (tap)
   if (ac.state !== 'running') {
     try { await ac.resume(); } catch(e) { return; }
   }
-  const N = { C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,Bb4:466.16,C5:523.25 };
-  const q = 0.40; // beat duration in seconds
-  // Tanti Auguri a Te — C major  [freq, beats]
-  const song = [
+
+  const N = {
+    Bb2:116.54, C3:130.81, F3:174.61, G3:196.00, Bb3:233.08,
+    C4:261.63, D4:293.66, E4:329.63, F4:349.23,
+    G4:392.00, A4:440.00, Bb4:466.16, B4:493.88, C5:523.25,
+    D5:587.33, E5:659.25,
+  };
+  const q = 0.38; // beat (slightly brisk = festive)
+
+  // ── Voice 1 · Lead melody · triangle ─────────────────────
+  const mel = [
     [N.C4,.5],[N.C4,.5],[N.D4,1],[N.C4,1],[N.F4,1],[N.E4,2],[0,.5],
     [N.C4,.5],[N.C4,.5],[N.D4,1],[N.C4,1],[N.G4,1],[N.F4,2],[0,.5],
     [N.C4,.5],[N.C4,.5],[N.C5,1],[N.A4,1],[N.F4,1],[N.E4,1],[N.D4,2],[0,.5],
     [N.Bb4,.5],[N.Bb4,.5],[N.A4,1],[N.F4,1],[N.G4,1],[N.F4,2.5],
   ];
-  let t = ac.currentTime + 0.2;
-  song.forEach(([f, b]) => {
-    tone(f, t, b * q * 0.82, 0.35, 'triangle');
-    t += b * q;
-  });
+
+  // ── Voice 2 · Harmony thirds above · sine ────────────────
+  const har = [
+    [N.E4,.5],[N.E4,.5],[N.F4,1],[N.E4,1],[N.A4,1],[N.G4,2],[0,.5],
+    [N.E4,.5],[N.E4,.5],[N.F4,1],[N.E4,1],[N.B4,1],[N.A4,2],[0,.5],
+    [N.E4,.5],[N.E4,.5],[N.E5,1],[N.C5,1],[N.A4,1],[N.G4,1],[N.F4,2],[0,.5],
+    [N.D5,.5],[N.D5,.5],[N.C5,1],[N.A4,1],[N.B4,1],[N.A4,2.5],
+  ];
+
+  // ── Voice 3 · Bass roots · sine [freq, beat_start, beat_dur] ─
+  const bas = [
+    [N.C3,  0.0, 3.0], [N.G3,  3.0, 3.5],   // line 1: C → G
+    [N.C3,  6.5, 3.0], [N.G3, 10.0, 3.0],   // line 2: C → G
+    [N.C3, 13.0, 3.5], [N.F3, 16.5, 4.0],   // line 3: C → F
+    [N.Bb3,20.5, 3.0], [N.F3, 23.5, 3.5],   // line 4: Bb → F
+  ];
+
+  const t0 = ac.currentTime + 0.25;
+
+  // Schedule melody
+  let tM = t0;
+  mel.forEach(([f, b]) => { if (f) tone(f, tM, b*q*0.82, 0.28, 'triangle'); tM += b*q; });
+
+  // Schedule harmony
+  let tH = t0;
+  har.forEach(([f, b]) => { if (f) tone(f, tH, b*q*0.82, 0.13, 'sine');     tH += b*q; });
+
+  // Schedule bass
+  bas.forEach(([f, bo, bd]) => tone(f, t0+bo*q, bd*q*0.88, 0.19, 'sine'));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -774,7 +804,7 @@ function endGame(result) {
   if (result === 'win') {
     showScreen('win');
     spawnConfetti();
-    // Song is played by the button tap (iOS requires a direct user gesture for audio)
+    setTimeout(() => playSong().catch(() => {}), 400); // auto-play; button is fallback
   } else {
     showScreen('gameover');
   }
