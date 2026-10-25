@@ -248,44 +248,35 @@
 
   <!-- ════════ WIN SCREEN ════════ -->
   <div id="winScreen" class="screen hidden">
-    <div style="font-size:3rem;text-align:center;">🏆🌟🎉</div>
-    <h2 class="win-title">BRAVISSIMA ZELIE !</h2>
-    <p style="color:rgba(255,255,255,.92);font-size:clamp(.85rem,4vw,.95rem);text-align:center;margin:4px 0 10px;">
-      Tu es la championne du gelato ! 🍦👑
+    <div style="font-size:2rem;text-align:center;margin-bottom:2px;">🏆🌟🎉</div>
+    <h2 class="win-title" style="margin:2px 0;">BRAVISSIMA ZELIE !</h2>
+    <p style="color:rgba(255,255,255,.9);font-size:clamp(.78rem,3.5vw,.88rem);text-align:center;margin:0 0 6px;">
+      10 ans 🎂 · Championne du gelato 🍦👑
     </p>
 
-    <div class="song-card">
-      <h3>🎵 La chanson de Zelie 🎵</h3>
-      <div class="song-lyrics">
-        <span class="it">Tanti auguri a te,</span><br>
-        Tanti auguri a te,<br>
-        <span class="gr">Tanti auguri cara Zelie,</span><br>
-        Tanti auguri a te ! 🎂<br>
+    <div class="song-card" style="padding:10px 16px;margin:4px 0;">
+      <h3 style="margin-bottom:4px;">🎵 La chanson de Zelie 🎵</h3>
+      <div class="song-lyrics" style="line-height:1.7;font-size:clamp(.82rem,3.8vw,.98rem);">
+        <span class="it">Tanti auguri a te,</span> tanti auguri a te,<br>
+        <span class="gr">Tanti auguri cara Zelie</span> — a te ! 🎂<br>
+        <span class="it">Dieci anni, che meraviglia !</span><br>
+        <span class="gr">Ti vogliamo bene per sempre ! 🌟</span><br>
         <br>
         <span class="it">Da parte di oncle Mauro,</span><br>
-        E di tatie Julie,<br>
-        <span class="gr">Di Margot e di Anouk,</span><br>
-        Con tutto il cuore ! 💕<br>
-        <br>
-        <span class="it">Sei la più brava,</span><br>
-        La reine du gelato,<br>
-        <span class="gr">Buon compleanno Zelie,</span><br>
-        Ti vogliamo bene ! 🌟<br>
-        <br>
-        <span class="it">Dieci anni, che meraviglia !</span><br>
-        Dix ans de bonheur,<br>
-        <span class="gr">Zelie grandit si bien —</span><br>
-        On t'aime pour toujours ! 🎂🥂
+        tatie Julie, Margot e Anouk —<br>
+        <span class="gr">Con tutto il cuore ! 💕</span>
       </div>
     </div>
 
-    <p id="songHint" style="color:#fff;font-size:1rem;font-weight:900;text-shadow:1px 1px 2px #000;margin-top:6px;animation:bounce 1s ease-in-out infinite;">
-      👇 Appuie ici pour la chanson ! 👇
+    <p id="songHint" style="color:#fff;font-size:.88rem;font-weight:900;text-shadow:1px 1px 2px #000;margin:4px 0;animation:bounce 1s ease-in-out infinite;">
+      👇 Appuie pour la chanson ! 👇
     </p>
-    <button class="btn blue" id="songBtn" style="font-size:1.3rem;padding:18px 50px;box-shadow:0 0 0 4px #fff,0 0 0 8px #FFD700;">
-      🎵 JOUER LA CHANSON 🎵
-    </button>
-    <button class="btn"      id="replayBtn">🔄 Rejouer</button>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="btn blue" id="songBtn" style="font-size:1rem;padding:12px 24px;box-shadow:0 0 0 3px #fff,0 0 0 6px #FFD700;">
+        🎵 CHANSON
+      </button>
+      <button class="btn" id="replayBtn" style="font-size:1rem;padding:12px 24px;">🔄 Rejouer</button>
+    </div>
   </div>
 
   <!-- ════════ GAME OVER SCREEN ════════ -->
