@@ -274,7 +274,12 @@
       </div>
     </div>
 
-    <button class="btn blue" id="songBtn">🎵 Rejouer la mélodie</button>
+    <p id="songHint" style="color:#fff;font-size:1rem;font-weight:900;text-shadow:1px 1px 2px #000;margin-top:6px;animation:bounce 1s ease-in-out infinite;">
+      👇 Appuie ici pour la chanson ! 👇
+    </p>
+    <button class="btn blue" id="songBtn" style="font-size:1.3rem;padding:18px 50px;box-shadow:0 0 0 4px #fff,0 0 0 8px #FFD700;">
+      🎵 JOUER LA CHANSON 🎵
+    </button>
     <button class="btn"      id="replayBtn">🔄 Rejouer</button>
   </div>
 
@@ -442,67 +447,62 @@ function flashLevel() {
 // ══════════════════════════════════════════════════════════
 //  AUDIO
 // ══════════════════════════════════════════════════════════
+// ── Audio context — created once on first user tap ──────────
 let _ac = null;
-function getAC() {
+function initAC() {
   if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
   return _ac;
 }
 
-// Resume context then run a callback — safe on iOS Safari
-function withAudio(fn) {
-  const ac = getAC();
-  if (ac.state === 'running') { fn(ac); }
-  else { ac.resume().then(() => fn(ac)); }
+// Low-level tone (called only when _ac is already running)
+function tone(freq, start, dur, vol=0.32, type='sine') {
+  if (!_ac || !freq) return;
+  const o = _ac.createOscillator(), g = _ac.createGain();
+  o.connect(g); g.connect(_ac.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, start);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  o.start(start); o.stop(start + dur + 0.06);
 }
 
-function note(ac, freq, dur, delay=0, vol=0.26, type='triangle') {
-  if (!freq) return;
-  const osc  = ac.createOscillator();
-  const gain = ac.createGain();
-  osc.connect(gain);
-  gain.connect(ac.destination);
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(vol, ac.currentTime + delay);
-  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + dur);
-  osc.start(ac.currentTime + delay);
-  osc.stop(ac.currentTime + delay + dur + 0.05);
-}
-
+// SFX — called during gameplay; AC was created in startGame so should be running
 function sfxGood() {
-  withAudio(ac => { note(ac,523,.07,.00); note(ac,659,.07,.09); note(ac,784,.12,.18); });
+  if (!_ac) return;
+  const t = _ac.currentTime;
+  tone(523,t+.00,.07); tone(659,t+.09,.07); tone(784,t+.18,.12);
 }
 function sfxBad() {
-  withAudio(ac => { note(ac,220,.12,.00,.3,'sawtooth'); note(ac,155,.18,.14,.25,'sawtooth'); });
+  if (!_ac) return;
+  const t = _ac.currentTime;
+  tone(200,t+.00,.12,.3,'sawtooth'); tone(150,t+.14,.18,.25,'sawtooth');
 }
 function sfxLevelUp() {
-  withAudio(ac => { note(ac,523,.08,.00); note(ac,659,.08,.10); note(ac,784,.08,.20); note(ac,1047,.2,.30); });
+  if (!_ac) return;
+  const t = _ac.currentTime;
+  tone(523,t+.00,.08); tone(659,t+.10,.08); tone(784,t+.20,.08); tone(1047,t+.30,.20);
 }
 
-function playBirthday() {
-  // Tanti Auguri (Happy Birthday) — C major
-  // withAudio ensures the AudioContext is running before scheduling notes
-  withAudio(ac => {
-  const n = {
-    C4:261.63, D4:293.66, E4:329.63, F4:349.23,
-    G4:392.00, A4:440.00, Bb4:466.16, C5:523.25
-  };
-  const q = 0.40; // quarter beat
-
-  // [freq, beats]
+// SONG — async so we can await resume(); MUST be called from a tap handler
+async function playSong() {
+  const ac = initAC();
+  // Await resume — this works when called directly from a user gesture (tap)
+  if (ac.state !== 'running') {
+    try { await ac.resume(); } catch(e) { return; }
+  }
+  const N = { C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,Bb4:466.16,C5:523.25 };
+  const q = 0.40; // beat duration in seconds
+  // Tanti Auguri a Te — C major  [freq, beats]
   const song = [
-    [n.C4,.5],[n.C4,.5],[n.D4,1],[n.C4,1],[n.F4,1],[n.E4,2],[0,.5],
-    [n.C4,.5],[n.C4,.5],[n.D4,1],[n.C4,1],[n.G4,1],[n.F4,2],[0,.5],
-    [n.C4,.5],[n.C4,.5],[n.C5,1],[n.A4,1],[n.F4,1],[n.E4,1],[n.D4,2],[0,.5],
-    [n.Bb4,.5],[n.Bb4,.5],[n.A4,1],[n.F4,1],[n.G4,1],[n.F4,2.5],
+    [N.C4,.5],[N.C4,.5],[N.D4,1],[N.C4,1],[N.F4,1],[N.E4,2],[0,.5],
+    [N.C4,.5],[N.C4,.5],[N.D4,1],[N.C4,1],[N.G4,1],[N.F4,2],[0,.5],
+    [N.C4,.5],[N.C4,.5],[N.C5,1],[N.A4,1],[N.F4,1],[N.E4,1],[N.D4,2],[0,.5],
+    [N.Bb4,.5],[N.Bb4,.5],[N.A4,1],[N.F4,1],[N.G4,1],[N.F4,2.5],
   ];
-
-  let t = 0.4;
+  let t = ac.currentTime + 0.2;
   song.forEach(([f, b]) => {
-    if (f) note(ac, f, b*q*0.82, t, 0.27, 'triangle');
+    tone(f, t, b * q * 0.82, 0.35, 'triangle');
     t += b * q;
   });
-  }); // end withAudio
 }
 
 // ══════════════════════════════════════════════════════════
@@ -774,7 +774,7 @@ function endGame(result) {
   if (result === 'win') {
     showScreen('win');
     spawnConfetti();
-    setTimeout(playBirthday, 600);
+    // Song is played by the button tap (iOS requires a direct user gesture for audio)
   } else {
     showScreen('gameover');
   }
@@ -842,7 +842,7 @@ function loop(ts) {
 }
 
 function startGame() {
-  withAudio(() => {}); // unlock & resume AudioContext on user gesture
+  initAC(); // create AudioContext on user gesture (required by browsers)
   resetGame();
   showGameUI();
   updateHUD();
@@ -920,7 +920,10 @@ function spawnConfetti() {
 $('startBtn').addEventListener('click', startGame);
 $('retryBtn').addEventListener('click', startGame);
 $('replayBtn').addEventListener('click', startGame);
-$('songBtn').addEventListener('click', () => { withAudio(() => playBirthday()); });
+$('songBtn').addEventListener('click', async () => {
+  $('songHint').style.display = 'none';
+  await playSong();
+});
 
 // ══════════════════════════════════════════════════════════
 //  INIT
