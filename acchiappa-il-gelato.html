@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🍦 Acchiappa il Gelato! — Pour Zelie</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none; -webkit-user-select: none;
+      touch-action: none;
+    }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #56CCF2;
+      font-family: 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive;
+    }
+    #app {
+      position: relative;
+      width: 100%; height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    #gameCanvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+
+    /* ── SCREENS ─────────────────────────────── */
+    .screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 10; padding: 24px 20px;
+      overflow-y: auto;
+    }
+    .screen.hidden { display: none !important; }
+
+    #startScreen {
+      background: linear-gradient(180deg,#56CCF2 0%,#A8EDEA 55%,#88D8B0 100%);
+    }
+    #winScreen {
+      background: linear-gradient(180deg,#1e8449 0%,#f8f9fa 45%,#c0392b 100%);
+    }
+    #gameoverScreen {
+      background: linear-gradient(180deg,#2c3e50 0%,#4a235a 100%);
+    }
+
+    /* ── HUD ─────────────────────────────────── */
+    #hud {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 8;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      border-bottom: 2px solid rgba(255,255,255,0.6);
+    }
+    #hud.hidden { display: none; }
+    #scoreDisplay { font-size: clamp(.95rem,4.5vw,1.2rem); font-weight:900; color:#333; }
+    #livesDisplay { font-size: clamp(1.1rem,5vw,1.4rem); letter-spacing:3px; }
+
+    /* progress bar */
+    #progressBar {
+      position: absolute; top: 50px; left: 10px; right: 10px;
+      height: 7px; background: rgba(0,0,0,0.15); border-radius:10px;
+      z-index: 8; overflow: hidden;
+    }
+    #progressBar.hidden { display: none; }
+    #progressFill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg,#27ae60,#f39c12,#e74c3c);
+      border-radius:10px; transition: width .35s ease;
+    }
+
+    /* ── MESSAGE POPUP ───────────────────────── */
+    #msgPopup {
+      position: absolute; bottom: 110px; left: 50%;
+      transform: translateX(-50%) scale(0);
+      min-width: 58%; max-width: 88%;
+      background: rgba(255,255,255,0.96);
+      border-radius: 18px; padding: 10px 16px;
+      font-size: clamp(.8rem,3.5vw,.95rem); font-weight:700;
+      color: #333; text-align: center; z-index: 20;
+      box-shadow: 0 4px 20px rgba(0,0,0,.22);
+      pointer-events: none;
+      border: 3px solid #ddd;
+      opacity: 0;
+      transition: transform .2s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+    }
+    #msgPopup.show { transform: translateX(-50%) scale(1); opacity:1; }
+    #msgPopup.good { border-color: #27ae60; }
+    #msgPopup.bad  { border-color: #e74c3c; }
+
+    /* ── LEVEL UP FLASH ──────────────────────── */
+    #levelFlash {
+      position: absolute; top: 70px; left: 50%;
+      transform: translateX(-50%);
+      font-size: clamp(1rem,5vw,1.3rem); font-weight:900;
+      color: #FFD700; text-shadow: 0 0 12px #FF8C00, 1px 1px 0 #333;
+      z-index: 21; pointer-events: none;
+      opacity: 0; transition: opacity .3s;
+    }
+    #levelFlash.show { opacity:1; }
+
+    /* ── CONFETTI ────────────────────────────── */
+    #confetti {
+      position: absolute; inset: 0;
+      pointer-events: none; z-index: 9; overflow: hidden;
+    }
+    .cp {
+      position: absolute; top: -20px;
+      animation: cfall linear forwards;
+    }
+    @keyframes cfall {
+      to { transform: translateY(115vh) rotate(720deg); opacity:0; }
+    }
+
+    /* ── TYPOGRAPHY HELPERS ──────────────────── */
+    .big-emoji { font-size: 3.8rem; line-height:1; margin-bottom:8px; }
+    .title {
+      font-size: clamp(1.7rem,8vw,2.4rem); font-weight:900;
+      color:#fff; text-shadow: 3px 3px 0 #c0392b, -1px -1px 0 #e74c3c;
+      text-align:center; line-height:1.1; margin-bottom:6px;
+    }
+    .win-title {
+      font-size: clamp(1.4rem,7vw,2rem); font-weight:900;
+      color:#FFD700; text-shadow:2px 2px 4px rgba(0,0,0,.5);
+      text-align:center; margin:4px 0;
+    }
+    .hero-name {
+      font-size: clamp(1.4rem,6.5vw,1.9rem);
+      color:#c0392b; font-weight:900;
+      text-shadow:1px 1px 0 #922b21;
+    }
+
+    /* ── BUTTONS ─────────────────────────────── */
+    .btn {
+      background: linear-gradient(135deg,#e74c3c,#c0392b);
+      color:#fff; border:none; border-radius:50px;
+      padding: 14px 44px;
+      font-size: clamp(.95rem,4.5vw,1.2rem);
+      font-family:inherit; font-weight:900;
+      cursor:pointer;
+      box-shadow: 0 5px 18px rgba(192,57,43,.45);
+      margin-top:10px;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .btn:active { transform: scale(.95); box-shadow: 0 2px 8px rgba(192,57,43,.35); }
+    .btn.green {
+      background: linear-gradient(135deg,#27ae60,#1e8449);
+      box-shadow: 0 5px 18px rgba(30,132,73,.45);
+    }
+    .btn.blue {
+      background: linear-gradient(135deg,#2980b9,#1a5276);
+      box-shadow: 0 5px 18px rgba(41,128,185,.45);
+    }
+
+    /* ── INSTRUCTION BOX ─────────────────────── */
+    .ibox {
+      background: rgba(255,255,255,.75); border-radius:16px;
+      padding:12px 18px; margin:10px 0 14px;
+      font-size:clamp(.8rem,3.5vw,.9rem); line-height:1.9;
+      color:#444; max-width:320px; width:100%;
+    }
+
+    /* ── SONG CARD ───────────────────────────── */
+    .song-card {
+      background: rgba(255,255,255,.92); border-radius:20px;
+      padding:16px 20px; margin:8px 0;
+      width:100%; max-width:340px;
+      border:3px solid #FFD700; text-align:center;
+    }
+    .song-card h3 { font-size:.95rem; color:#888; margin-bottom:8px; }
+    .song-lyrics { font-size:clamp(.9rem,4vw,1.05rem); line-height:2.1; color:#333; }
+    .song-lyrics .it  { color:#c0392b; font-style:italic; font-weight:700; }
+    .song-lyrics .gr  { color:#1e8449; font-weight:900; }
+
+    /* ── GAMEOVER BOX ────────────────────────── */
+    .gobox {
+      background: rgba(255,255,255,.1); border:2px solid rgba(255,255,255,.3);
+      border-radius:16px; padding:16px 18px; margin:10px 0;
+      max-width:320px; width:100%; text-align:center;
+    }
+    .gobox p { color:#ecf0f1; font-size:clamp(.85rem,4vw,.98rem); line-height:1.9; }
+    .gobox strong { color:#f39c12; }
+
+    /* ── ANIMATIONS ──────────────────────────── */
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-14px); }
+    }
+    @keyframes wiggle {
+      0%,100% { transform: rotate(0); }
+      25%     { transform: rotate(-8deg); }
+      75%     { transform: rotate(8deg); }
+    }
+    .bounce { animation: bounce 1.1s ease-in-out infinite; }
+    .wiggle { animation: wiggle 1.4s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════ START SCREEN ════════ -->
+  <div id="startScreen" class="screen">
+    <div class="big-emoji bounce">🍦</div>
+    <h1 class="title">Acchiappa<br>il Gelato!</h1>
+    <p style="font-size:clamp(.85rem,4vw,1rem);color:#555;text-align:center;margin-bottom:4px;">
+      Un jeu spécial pour
+    </p>
+    <div class="hero-name">🎂 Zelie 🎂</div>
+
+    <div class="ibox">
+      🍦 <strong>Attrape</strong> les gelatos italiens !<br>
+      🐟 <strong>Évite</strong> anchois, ail &amp; horreurs !<br>
+      📱 <strong>Glisse le doigt</strong> pour bouger Zelie<br>
+      🏆 Attrape <strong>20 gelatos</strong> pour la chanson !
+    </div>
+
+    <button class="btn" id="startBtn">🍦 JOUER ! 🍦</button>
+    <p style="margin-top:10px;font-size:.78rem;color:#666;text-align:center;">
+      Avec tout l'amour de la famille 💕<br>
+      Oncle Mauro · Tatie Julie · Margot · Anouk
+    </p>
+  </div>
+
+  <!-- ════════ CANVAS ════════ -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- ════════ HUD ════════ -->
+  <div id="hud" class="hidden">
+    <div id="scoreDisplay">🍦 0 / 20</div>
+    <div id="livesDisplay">❤️❤️❤️</div>
+  </div>
+  <div id="progressBar" class="hidden"><div id="progressFill"></div></div>
+
+  <!-- ════════ MESSAGE POPUP ════════ -->
+  <div id="msgPopup"></div>
+
+  <!-- ════════ LEVEL FLASH ════════ -->
+  <div id="levelFlash">⚡ PLUS VITE ! ⚡</div>
+
+  <!-- ════════ CONFETTI ════════ -->
+  <div id="confetti"></div>
+
+  <!-- ════════ WIN SCREEN ════════ -->
+  <div id="winScreen" class="screen hidden">
+    <div style="font-size:3rem;text-align:center;">🏆🌟🎉</div>
+    <h2 class="win-title">BRAVISSIMA ZELIE !</h2>
+    <p style="color:rgba(255,255,255,.92);font-size:clamp(.85rem,4vw,.95rem);text-align:center;margin:4px 0 10px;">
+      Tu es la championne du gelato ! 🍦👑
+    </p>
+
+    <div class="song-card">
+      <h3>🎵 La chanson de Zelie 🎵</h3>
+      <div class="song-lyrics">
+        <span class="it">Tanti auguri a te,</span><br>
+        Tanti auguri a te,<br>
+        <span class="gr">Tanti auguri cara Zelie,</span><br>
+        Tanti auguri a te ! 🎂<br>
+        <br>
+        <span class="it">Da parte di oncle Mauro,</span><br>
+        E di tatie Julie,<br>
+        <span class="gr">Di Margot e di Anouk,</span><br>
+        Con tutto il cuore ! 💕<br>
+        <br>
+        <span class="it">Sei la più brava,</span><br>
+        La reine du gelato,<br>
+        <span class="gr">Buon compleanno Zelie,</span><br>
+        Ti vogliamo bene ! 🌟
+      </div>
+    </div>
+
+    <button class="btn blue" id="songBtn">🎵 Rejouer la mélodie</button>
+    <button class="btn"      id="replayBtn">🔄 Rejouer</button>
+  </div>
+
+  <!-- ════════ GAME OVER SCREEN ════════ -->
+  <div id="gameoverScreen" class="screen hidden">
+    <div style="font-size:3.5rem;text-align:center;" class="wiggle">😭🍦</div>
+    <h2 style="color:#fff;font-size:clamp(1.4rem,7vw,1.8rem);text-align:center;margin:8px 0;">
+      Aïe aïe aïe…
+    </h2>
+    <div class="gobox">
+      <p>
+        <strong>Oncle Mauro pleure</strong> des larmes de gelato ! 😢<br>
+        Margot et Anouk te font confiance !<br>
+        Tatie Julie a préparé du gelato maison…<br>
+        <strong>Allez, tu peux le faire ! 💪</strong>
+      </p>
+    </div>
+    <button class="btn" id="retryBtn">🍦 Réessayer !</button>
+  </div>
+
+</div>
+<script>
+// ══════════════════════════════════════════════════════════
+//  CANVAS
+// ══════════════════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const appEl  = document.getElementById('app');
+
+function resize() {
+  canvas.width  = appEl.offsetWidth;
+  canvas.height = appEl.offsetHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ══════════════════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════════════════
+const CFG = {
+  target      : 20,
+  lives       : 3,
+  playerW     : 62,
+  playerH     : 62,
+  itemSize    : 44,
+  startSpeed  : 2.6,
+  maxSpeed    : 8,
+  speedStep   : 0.4,
+  speedEvery  : 4,
+  startMs     : 1450,
+  minMs       : 520,
+  lerpRate    : 0.17,
+  goodChance  : 0.65,
+};
+
+const GOOD = ['🍦','🍧','🍨','🍓','🫐','🍋','🍫'];
+const BAD  = ['🐟','🧄','🌶️','🥒','🦆','🧅'];
+
+const GOOD_MSGS = [
+  '🤌 Délicieux ! Mamma mia !',
+  '😄 Oncle Mauro est jaloux !',
+  '💅 Margot t\'envie déjà !',
+  '😋 Anouk veut le même !',
+  '👏 Tatie Julie applaudit !',
+  '🌟 Perfetto ! Bravissima !',
+  '🇮🇹 Tu es une vraie italienne !',
+  '👑 La reine du gelato !',
+  '🏛️ Même les Romains n\'avaient pas ça !',
+  '🤩 Oncle Mauro est fier de toi !',
+  '🎉 Straordinario ! Magnifico !',
+  '😍 Margot et Anouk applaudissent !',
+  '🌺 Tatie Julie est émue aux larmes !',
+  '🫶 La famiglia est avec toi !',
+];
+
+const BAD_MSGS = [
+  '🤮 BEURK ! Des anchois ! Même oncle Mauro refuse !',
+  '😱 De l\'ail ?! Tatie Julie s\'évanouit !',
+  '😂 Margot et Anouk rigolent fort !',
+  '🤢 C\'est pas du gelato ça !! Mamma mia !',
+  '😭 Oncle Mauro pleure ! C\'était horrible !',
+  '🙈 Anouk cache les yeux !',
+  '📞 Margot appelle pour dire "BEURK" depuis Paris !',
+  '🕊️ Même les pigeons de Rome refusent ça !',
+  '👵 La nonna italienne s\'évanouit !',
+  '🇮🇹 L\'Italie entière proteste ! NON ! NON ! NON !',
+  '🥒 Un cornichon ?! Dans un gelato ?! Madonna !',
+  '💀 C\'est un crime contre la gastronomie italienne !',
+];
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let G = {};
+
+function resetGame() {
+  G = {
+    running    : false,
+    score      : 0,
+    lives      : CFG.lives,
+    playerX    : canvas.width / 2,
+    targetX    : canvas.width / 2,
+    items      : [],
+    particles  : [],
+    speed      : CFG.startSpeed,
+    spawnMs    : CFG.startMs,
+    lastSpawn  : 0,
+    shake      : 0,
+    raf        : null,
+    level      : 0,
+  };
+}
+resetGame();
+
+// ══════════════════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════════════════
+const $  = id => document.getElementById(id);
+const SCR = { start:$('startScreen'), win:$('winScreen'), gameover:$('gameoverScreen') };
+
+function showScreen(name) {
+  Object.values(SCR).forEach(s => s.classList.add('hidden'));
+  $('hud').classList.add('hidden');
+  $('progressBar').classList.add('hidden');
+  if (name) SCR[name].classList.remove('hidden');
+}
+
+function showGameUI() {
+  Object.values(SCR).forEach(s => s.classList.add('hidden'));
+  $('hud').classList.remove('hidden');
+  $('progressBar').classList.remove('hidden');
+}
+
+function updateHUD() {
+  $('scoreDisplay').textContent = `🍦 ${G.score} / ${CFG.target}`;
+  $('livesDisplay').textContent =
+    '❤️'.repeat(G.lives) + '🖤'.repeat(Math.max(0, CFG.lives - G.lives));
+  $('progressFill').style.width = `${(G.score / CFG.target) * 100}%`;
+}
+
+let _msgT = null;
+function showMsg(text, type) {
+  const el = $('msgPopup');
+  if (_msgT) clearTimeout(_msgT);
+  el.textContent = text;
+  el.className = `show ${type}`;
+  _msgT = setTimeout(() => { el.className = ''; }, 2100);
+}
+
+let _lvlT = null;
+function flashLevel() {
+  const el = $('levelFlash');
+  if (_lvlT) clearTimeout(_lvlT);
+  el.classList.add('show');
+  _lvlT = setTimeout(() => el.classList.remove('show'), 1200);
+}
+
+// ══════════════════════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════════════════════
+let _ac = null;
+function getAC() {
+  if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (_ac.state === 'suspended') _ac.resume();
+  return _ac;
+}
+
+function note(freq, dur, delay=0, vol=0.26, type='triangle') {
+  if (!freq) return;
+  const ac   = getAC();
+  const osc  = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, ac.currentTime + delay);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + delay + dur);
+  osc.start(ac.currentTime + delay);
+  osc.stop(ac.currentTime + delay + dur + 0.05);
+}
+
+function sfxGood() {
+  note(523,.07,.00); note(659,.07,.09); note(784,.12,.18);
+}
+function sfxBad() {
+  note(220,.12,.00,.3,'sawtooth'); note(155,.18,.14,.25,'sawtooth');
+}
+function sfxLevelUp() {
+  note(523,.08,.00); note(659,.08,.10); note(784,.08,.20); note(1047,.2,.30);
+}
+
+function playBirthday() {
+  // Tanti Auguri (Happy Birthday) — C major
+  const n = {
+    C4:261.63, D4:293.66, E4:329.63, F4:349.23,
+    G4:392.00, A4:440.00, Bb4:466.16, C5:523.25
+  };
+  const q = 0.40; // quarter beat
+
+  // [freq, beats]
+  const song = [
+    [n.C4,.5],[n.C4,.5],[n.D4,1],[n.C4,1],[n.F4,1],[n.E4,2],[0,.5],
+    [n.C4,.5],[n.C4,.5],[n.D4,1],[n.C4,1],[n.G4,1],[n.F4,2],[0,.5],
+    [n.C4,.5],[n.C4,.5],[n.C5,1],[n.A4,1],[n.F4,1],[n.E4,1],[n.D4,2],[0,.5],
+    [n.Bb4,.5],[n.Bb4,.5],[n.A4,1],[n.F4,1],[n.G4,1],[n.F4,2.5],
+  ];
+
+  let t = 0.4;
+  song.forEach(([f, b]) => {
+    if (f) note(f, b*q*0.82, t, 0.27, 'triangle');
+    t += b * q;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING — BACKGROUND
+// ══════════════════════════════════════════════════════════
+// Cloud positions (static, relative to canvas size)
+const CLOUDS = [
+  { rx:.12, ry:.12, r:52 },
+  { rx:.78, ry:.17, r:44 },
+  { rx:.48, ry:.08, r:38 },
+  { rx:.30, ry:.22, r:30 },
+];
+
+function drawBg() {
+  const w = canvas.width, h = canvas.height;
+
+  // Sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0,   '#4FC3F7');
+  sky.addColorStop(.55, '#B2EBF2');
+  sky.addColorStop(1,   '#A5D6A7');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h);
+
+  // Sun
+  ctx.save();
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur  = 28;
+  ctx.fillStyle   = '#FFF176';
+  ctx.beginPath();
+  ctx.arc(w - 52, 62, 30, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Sun rays
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,235,59,0.35)';
+  ctx.lineWidth   = 3;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(w-52 + Math.cos(a)*34, 62 + Math.sin(a)*34);
+    ctx.lineTo(w-52 + Math.cos(a)*52, 62 + Math.sin(a)*52);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Clouds
+  ctx.fillStyle = 'rgba(255,255,255,.82)';
+  CLOUDS.forEach(c => drawCloud(c.rx*w, c.ry*h, c.r));
+
+  // Hills (back)
+  ctx.fillStyle = '#66BB6A';
+  ctx.beginPath();
+  ctx.moveTo(0, h*.75);
+  ctx.bezierCurveTo(w*.15,h*.55, w*.35,h*.65, w*.5,h*.75);
+  ctx.bezierCurveTo(w*.65,h*.85, w*.82,h*.7,  w,   h*.76);
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fill();
+
+  // Hills (front)
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath();
+  ctx.moveTo(0, h*.88);
+  ctx.bezierCurveTo(w*.2,h*.78, w*.42,h*.86, w*.6,h*.88);
+  ctx.bezierCurveTo(w*.78,h*.90, w*.9,h*.83, w,   h*.88);
+  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+  ctx.fill();
+
+  // Ground
+  ctx.fillStyle = '#388E3C';
+  ctx.fillRect(0, h*.93, w, h);
+
+  // Italian flag strip
+  const fh = 13, fy = h - fh;
+  ctx.fillStyle = '#009246'; ctx.fillRect(0,    fy, w/3, fh);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(w/3,  fy, w/3, fh);
+  ctx.fillStyle = '#CE2B37'; ctx.fillRect(w*2/3,fy, w/3, fh);
+}
+
+function drawCloud(x, y, r) {
+  ctx.beginPath();
+  ctx.arc(x,        y,       r*.55, 0, Math.PI*2);
+  ctx.arc(x+r*.42,  y-r*.1,  r*.44, 0, Math.PI*2);
+  ctx.arc(x+r*.85,  y,       r*.48, 0, Math.PI*2);
+  ctx.arc(x+r*.42,  y+r*.28, r*.36, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING — PLAYER
+// ══════════════════════════════════════════════════════════
+function playerY() { return canvas.height - 78; }
+
+function drawPlayer() {
+  const x = G.playerX, y = playerY();
+  ctx.save();
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(x, y+30, 26, 7, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Girl emoji
+  ctx.font = `${CFG.playerH}px serif`;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('👧', x, y);
+
+  // Name tag
+  ctx.font      = 'bold 13px Comic Sans MS, cursive';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#c0392b';
+  ctx.fillStyle   = '#fff';
+  ctx.strokeText('Zelie 🍦', x, y+43);
+  ctx.fillText  ('Zelie 🍦', x, y+43);
+
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING — ITEMS
+// ══════════════════════════════════════════════════════════
+function drawItems() {
+  ctx.font         = `${CFG.itemSize}px serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  G.items.forEach(item => {
+    ctx.save();
+    ctx.translate(item.x, item.y);
+    ctx.rotate(item.rot);
+    ctx.fillText(item.emoji, 0, 0);
+    ctx.restore();
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  DRAWING — PARTICLES
+// ══════════════════════════════════════════════════════════
+function drawParticles() {
+  G.particles = G.particles.filter(p => p.life > 0);
+  G.particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha  = p.life / p.maxLife;
+    ctx.font         = `${p.size}px serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.emoji, p.x, p.y);
+    ctx.restore();
+    p.x   += p.vx;
+    p.y   += p.vy;
+    p.vy  += 0.28;
+    p.life--;
+  });
+}
+
+function burst(x, y, good) {
+  const pool = good
+    ? ['✨','⭐','💫','🌟','🎉','💛','🍦']
+    : ['💥','😵','⚡','💢','🤢'];
+  for (let i = 0; i < 6; i++) {
+    G.particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 7,
+      vy: -(Math.random() * 4.5 + 1.5),
+      emoji  : pool[Math.floor(Math.random() * pool.length)],
+      size   : 18 + Math.random() * 14,
+      life   : 32, maxLife: 32,
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SPAWN & COLLISION
+// ══════════════════════════════════════════════════════════
+function spawnItem(now) {
+  if (now - G.lastSpawn < G.spawnMs) return;
+  G.lastSpawn = now;
+  const good  = Math.random() < CFG.goodChance;
+  const pool  = good ? GOOD : BAD;
+  const emoji = pool[Math.floor(Math.random() * pool.length)];
+  const m     = CFG.itemSize;
+  G.items.push({
+    x     : m + Math.random() * (canvas.width - m*2),
+    y     : -m,
+    emoji,
+    good,
+    vy    : G.speed + (Math.random()*.8 - .4),
+    vx    : (Math.random() - .5) * 1.4,
+    rot   : 0,
+    rotV  : (Math.random() - .5) * .09,
+  });
+}
+
+function hit(item) {
+  const py = playerY();
+  const hw = CFG.playerW/2 + CFG.itemSize/3;
+  const hh = CFG.playerH/2 + CFG.itemSize/3;
+  return Math.abs(item.x - G.playerX) < hw && Math.abs(item.y - py) < hh;
+}
+
+// ══════════════════════════════════════════════════════════
+//  GAME EVENTS
+// ══════════════════════════════════════════════════════════
+function onCatch(item) {
+  if (item.good) {
+    G.score++;
+    sfxGood();
+    burst(item.x, item.y, true);
+    showMsg(GOOD_MSGS[Math.floor(Math.random() * GOOD_MSGS.length)], 'good');
+
+    // Speed up every N good catches
+    if (G.score % CFG.speedEvery === 0) {
+      G.speed   = Math.min(CFG.maxSpeed, G.speed + CFG.speedStep);
+      G.spawnMs = Math.max(CFG.minMs, G.spawnMs - 80);
+      sfxLevelUp();
+      flashLevel();
+    }
+
+    updateHUD();
+    if (G.score >= CFG.target) endGame('win');
+  } else {
+    G.lives--;
+    sfxBad();
+    burst(item.x, item.y, false);
+    showMsg(BAD_MSGS[Math.floor(Math.random() * BAD_MSGS.length)], 'bad');
+    G.shake = 14;
+    updateHUD();
+    if (G.lives <= 0) endGame('lose');
+  }
+}
+
+function endGame(result) {
+  G.running = false;
+  cancelAnimationFrame(G.raf);
+  if (result === 'win') {
+    showScreen('win');
+    spawnConfetti();
+    setTimeout(playBirthday, 600);
+  } else {
+    showScreen('gameover');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ══════════════════════════════════════════════════════════
+const keys = {};
+document.addEventListener('keydown', e => { keys[e.key] = true; });
+document.addEventListener('keyup',   e => { keys[e.key] = false; });
+
+let _lastTs = 0;
+
+function loop(ts) {
+  if (!G.running) return;
+
+  const dt = Math.min((ts - _lastTs) / 16.67, 3);
+  _lastTs  = ts;
+
+  // Keyboard input → adjust targetX
+  const kspd = CFG.playerW * 0.18 * dt;
+  if (keys['ArrowLeft'])  G.targetX = Math.max(CFG.playerW/2, G.targetX - kspd*5);
+  if (keys['ArrowRight']) G.targetX = Math.min(canvas.width - CFG.playerW/2, G.targetX + kspd*5);
+
+  // Screen shake offset
+  let sx = 0, sy = 0;
+  if (G.shake > 0) {
+    sx = (Math.random()-.5) * G.shake;
+    sy = (Math.random()-.5) * G.shake;
+    G.shake = Math.max(0, G.shake - 1.6);
+  }
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  drawBg();
+
+  // Smooth player movement
+  G.playerX += (G.targetX - G.playerX) * CFG.lerpRate * dt;
+
+  // Spawn
+  spawnItem(ts);
+
+  // Update items
+  const remove = new Set();
+  G.items.forEach((item, i) => {
+    item.y   += item.vy * dt;
+    item.x   += item.vx * dt;
+    item.rot += item.rotV * dt;
+    if (hit(item)) {
+      remove.add(i);
+      if (G.running) onCatch(item);
+    } else if (item.y > canvas.height + CFG.itemSize) {
+      remove.add(i);
+    }
+  });
+  G.items = G.items.filter((_, i) => !remove.has(i));
+
+  drawItems();
+  drawParticles();
+  drawPlayer();
+  ctx.restore();
+
+  if (G.running) G.raf = requestAnimationFrame(loop);
+}
+
+function startGame() {
+  getAC(); // unlock audio on user gesture
+  resetGame();
+  showGameUI();
+  updateHUD();
+  G.running   = true;
+  G.lastSpawn = performance.now();
+  _lastTs     = performance.now();
+  G.raf       = requestAnimationFrame(loop);
+}
+
+// ══════════════════════════════════════════════════════════
+//  TOUCH CONTROLS
+// ══════════════════════════════════════════════════════════
+function canvasX(clientX) {
+  const r = canvas.getBoundingClientRect();
+  return (clientX - r.left) * (canvas.width / r.width);
+}
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (!G.running) return;
+  G.targetX = Math.max(CFG.playerW/2,
+    Math.min(canvas.width - CFG.playerW/2, canvasX(e.touches[0].clientX)));
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!G.running) return;
+  G.targetX = Math.max(CFG.playerW/2,
+    Math.min(canvas.width - CFG.playerW/2, canvasX(e.touches[0].clientX)));
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => { e.preventDefault(); }, { passive: false });
+
+// Mouse (desktop testing)
+canvas.addEventListener('mousemove', e => {
+  if (!G.running) return;
+  G.targetX = Math.max(CFG.playerW/2,
+    Math.min(canvas.width - CFG.playerW/2, canvasX(e.clientX)));
+});
+
+// ══════════════════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════════════════
+function spawnConfetti() {
+  const box    = $('confetti');
+  box.innerHTML = '';
+  const colors = ['#e74c3c','#f39c12','#27ae60','#3498db','#9b59b6','#FFD700','#e67e22'];
+  const emojis = ['🍦','🌟','🎉','🎊','💕','🇮🇹','✨','🎂','🏆'];
+
+  for (let i = 0; i < 55; i++) {
+    const p = document.createElement('div');
+    p.className = 'cp';
+    if (Math.random() < .38) {
+      p.textContent  = emojis[Math.floor(Math.random() * emojis.length)];
+      p.style.cssText = `font-size:${14+Math.random()*16}px;background:none;width:auto;height:auto;`;
+    } else {
+      const w = 6 + Math.random()*8, h = 10 + Math.random()*14;
+      p.style.cssText =
+        `width:${w}px;height:${h}px;` +
+        `background:${colors[Math.floor(Math.random()*colors.length)]};` +
+        `border-radius:${Math.random()<.5?'50%':'2px'};`;
+    }
+    p.style.left      = `${Math.random()*100}%`;
+    const dur = 2.2 + Math.random()*2.4;
+    const del = Math.random() * 1.6;
+    p.style.animation = `cfall ${dur}s ${del}s ease-in forwards`;
+    box.appendChild(p);
+  }
+  setTimeout(() => { box.innerHTML = ''; }, 5500);
+}
+
+// ══════════════════════════════════════════════════════════
+//  BUTTONS
+// ══════════════════════════════════════════════════════════
+$('startBtn').addEventListener('click', startGame);
+$('retryBtn').addEventListener('click', startGame);
+$('replayBtn').addEventListener('click', startGame);
+$('songBtn').addEventListener('click', () => { getAC(); playBirthday(); });
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+showScreen('start');
+</script>
+</body>
+</html>
