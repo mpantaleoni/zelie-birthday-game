@@ -211,7 +211,7 @@
     <p style="font-size:clamp(.85rem,4vw,1rem);color:#555;text-align:center;margin-bottom:4px;">
       Un jeu spécial pour
     </p>
-    <div class="hero-name">🎂 Zelie 🎂</div>
+    <div class="hero-name">🎂 Zelie — 10 ans ! 🎂</div>
 
     <div class="ibox">
       🍦 <strong>Attrape</strong> les gelatos italiens !<br>
@@ -270,7 +270,12 @@
         <span class="it">Sei la più brava,</span><br>
         La reine du gelato,<br>
         <span class="gr">Buon compleanno Zelie,</span><br>
-        Ti vogliamo bene ! 🌟
+        Ti vogliamo bene ! 🌟<br>
+        <br>
+        <span class="it">Dieci anni, che meraviglia !</span><br>
+        Dix ans de bonheur,<br>
+        <span class="gr">Zelie grandit si bien —</span><br>
+        On t'aime pour toujours ! 🎂🥂
       </div>
     </div>
 
@@ -360,6 +365,9 @@ const GOOD_MSGS = [
   '😍 Margot et Anouk applaudissent !',
   '🌺 Tatie Julie est émue aux larmes !',
   '🫶 La famiglia est avec toi !',
+  '🎂 10 ans aujourd\'hui ! Incroyable !',
+  '🎉 Dix ans déjà ! Oncle Mauro n\'en revient pas !',
+  '🌟 10 ans et déjà championne du gelato !',
 ];
 
 const BAD_MSGS = [
@@ -505,20 +513,21 @@ async function playSong() {
     [N.Bb4,.5],[N.Bb4,.5],[N.A4,1],[N.F4,1],[N.G4,1],[N.F4,2.5],
   ];
 
-  // ── Voice 2 · Harmony thirds above · sine ────────────────
+  // ── Voice 2 · Harmony thirds above · sine (F major key: no B♮!) ─
   const har = [
     [N.E4,.5],[N.E4,.5],[N.F4,1],[N.E4,1],[N.A4,1],[N.G4,2],[0,.5],
-    [N.E4,.5],[N.E4,.5],[N.F4,1],[N.E4,1],[N.B4,1],[N.A4,2],[0,.5],
+    [N.E4,.5],[N.E4,.5],[N.F4,1],[N.E4,1],[N.Bb4,1],[N.A4,2],[0,.5],  // G→Bb not B!
     [N.E4,.5],[N.E4,.5],[N.E5,1],[N.C5,1],[N.A4,1],[N.G4,1],[N.F4,2],[0,.5],
-    [N.D5,.5],[N.D5,.5],[N.C5,1],[N.A4,1],[N.B4,1],[N.A4,2.5],
+    [N.D5,.5],[N.D5,.5],[N.C5,1],[N.A4,1],[N.Bb4,1],[N.A4,2.5],       // G→Bb not B!
   ];
 
-  // ── Voice 3 · Bass roots · sine [freq, beat_start, beat_dur] ─
+  // ── Voice 3 · Bass in F major · sine [freq, beat_start, beat_dur] ─
+  // Chords: line1 F→C7 | line2 C7→F | line3 F→Bb | line4 C7→F
   const bas = [
-    [N.C3,  0.0, 3.0], [N.G3,  3.0, 3.5],   // line 1: C → G
-    [N.C3,  6.5, 3.0], [N.G3, 10.0, 3.0],   // line 2: C → G
-    [N.C3, 13.0, 3.5], [N.F3, 16.5, 4.0],   // line 3: C → F
-    [N.Bb3,20.5, 3.0], [N.F3, 23.5, 3.5],   // line 4: Bb → F
+    [N.F3,  0.0, 3.0], [N.C3,  3.0, 3.5],   // line 1: F  → C7
+    [N.C3,  6.5, 3.5], [N.F3, 10.0, 3.0],   // line 2: C7 → F
+    [N.F3, 13.0, 3.5], [N.Bb3,16.5, 4.0],   // line 3: F  → Bb
+    [N.C3, 20.5, 3.5], [N.F3, 24.0, 3.0],   // line 4: C7 → F
   ];
 
   const t0 = ac.currentTime + 0.25;
