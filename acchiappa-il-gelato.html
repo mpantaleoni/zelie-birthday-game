@@ -438,13 +438,18 @@ function flashLevel() {
 let _ac = null;
 function getAC() {
   if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)();
-  if (_ac.state === 'suspended') _ac.resume();
   return _ac;
 }
 
-function note(freq, dur, delay=0, vol=0.26, type='triangle') {
+// Resume context then run a callback — safe on iOS Safari
+function withAudio(fn) {
+  const ac = getAC();
+  if (ac.state === 'running') { fn(ac); }
+  else { ac.resume().then(() => fn(ac)); }
+}
+
+function note(ac, freq, dur, delay=0, vol=0.26, type='triangle') {
   if (!freq) return;
-  const ac   = getAC();
   const osc  = ac.createOscillator();
   const gain = ac.createGain();
   osc.connect(gain);
@@ -458,17 +463,19 @@ function note(freq, dur, delay=0, vol=0.26, type='triangle') {
 }
 
 function sfxGood() {
-  note(523,.07,.00); note(659,.07,.09); note(784,.12,.18);
+  withAudio(ac => { note(ac,523,.07,.00); note(ac,659,.07,.09); note(ac,784,.12,.18); });
 }
 function sfxBad() {
-  note(220,.12,.00,.3,'sawtooth'); note(155,.18,.14,.25,'sawtooth');
+  withAudio(ac => { note(ac,220,.12,.00,.3,'sawtooth'); note(ac,155,.18,.14,.25,'sawtooth'); });
 }
 function sfxLevelUp() {
-  note(523,.08,.00); note(659,.08,.10); note(784,.08,.20); note(1047,.2,.30);
+  withAudio(ac => { note(ac,523,.08,.00); note(ac,659,.08,.10); note(ac,784,.08,.20); note(ac,1047,.2,.30); });
 }
 
 function playBirthday() {
   // Tanti Auguri (Happy Birthday) — C major
+  // withAudio ensures the AudioContext is running before scheduling notes
+  withAudio(ac => {
   const n = {
     C4:261.63, D4:293.66, E4:329.63, F4:349.23,
     G4:392.00, A4:440.00, Bb4:466.16, C5:523.25
@@ -485,9 +492,10 @@ function playBirthday() {
 
   let t = 0.4;
   song.forEach(([f, b]) => {
-    if (f) note(f, b*q*0.82, t, 0.27, 'triangle');
+    if (f) note(ac, f, b*q*0.82, t, 0.27, 'triangle');
     t += b * q;
   });
+  }); // end withAudio
 }
 
 // ══════════════════════════════════════════════════════════
@@ -795,7 +803,7 @@ function loop(ts) {
 }
 
 function startGame() {
-  getAC(); // unlock audio on user gesture
+  withAudio(() => {}); // unlock & resume AudioContext on user gesture
   resetGame();
   showGameUI();
   updateHUD();
@@ -873,7 +881,7 @@ function spawnConfetti() {
 $('startBtn').addEventListener('click', startGame);
 $('retryBtn').addEventListener('click', startGame);
 $('replayBtn').addEventListener('click', startGame);
-$('songBtn').addEventListener('click', () => { getAC(); playBirthday(); });
+$('songBtn').addEventListener('click', () => { withAudio(() => playBirthday()); });
 
 // ══════════════════════════════════════════════════════════
 //  INIT
