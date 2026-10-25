@@ -536,90 +536,166 @@ async function playSong() {
 }
 
 // ══════════════════════════════════════════════════════════
-//  DRAWING — BACKGROUND
+//  DRAWING — BACKGROUND  (Birthday + Italy)
 // ══════════════════════════════════════════════════════════
-// Cloud positions (static, relative to canvas size)
-const CLOUDS = [
-  { rx:.12, ry:.12, r:52 },
-  { rx:.78, ry:.17, r:44 },
-  { rx:.48, ry:.08, r:38 },
-  { rx:.30, ry:.22, r:30 },
+
+// Static positions (deterministic, not random, so they don't jump)
+const STARS_BG = [
+  {rx:.05,ry:.06,r:1.5},{rx:.18,ry:.03,r:1.0},{rx:.32,ry:.09,r:2.0},
+  {rx:.45,ry:.04,r:1.5},{rx:.60,ry:.08,r:1.0},{rx:.72,ry:.02,r:2.0},
+  {rx:.85,ry:.05,r:1.5},{rx:.93,ry:.11,r:1.0},{rx:.10,ry:.15,r:1.0},
+  {rx:.25,ry:.19,r:1.5},{rx:.38,ry:.13,r:1.0},{rx:.53,ry:.17,r:2.0},
+  {rx:.66,ry:.14,r:1.0},{rx:.79,ry:.20,r:1.5},{rx:.91,ry:.16,r:1.0},
+  {rx:.14,ry:.23,r:1.0},{rx:.56,ry:.25,r:1.5},{rx:.81,ry:.23,r:1.0},
+];
+
+const BALLOONS_BG = [
+  { rx:.06, ry:.32, col:'#009246', r:15 }, // Italian green
+  { rx:.17, ry:.21, col:'#FFFFFF', r:12 }, // Italian white
+  { rx:.84, ry:.26, col:'#CE2B37', r:15 }, // Italian red
+  { rx:.93, ry:.37, col:'#FFD700', r:12 }, // gold
+  { rx:.50, ry:.17, col:'#FF69B4', r:11 }, // pink birthday
 ];
 
 function drawBg() {
   const w = canvas.width, h = canvas.height;
+  const now = Date.now() * 0.001; // seconds for gentle animation
 
-  // Sky gradient
-  const sky = ctx.createLinearGradient(0, 0, 0, h);
-  sky.addColorStop(0,   '#4FC3F7');
-  sky.addColorStop(.55, '#B2EBF2');
-  sky.addColorStop(1,   '#A5D6A7');
+  // ── Evening birthday sky ──────────────────────────────
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.78);
+  sky.addColorStop(0,    '#0d0d3b'); // deep midnight blue
+  sky.addColorStop(0.28, '#7B1A45'); // deep wine/magenta
+  sky.addColorStop(0.58, '#C94A10'); // warm orange
+  sky.addColorStop(1,    '#F0BA30'); // golden horizon
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, w, h * 0.78);
 
-  // Sun
+  // ── Italian dark-green ground ─────────────────────────
+  const grd = ctx.createLinearGradient(0, h*.78, 0, h);
+  grd.addColorStop(0, '#1B4A0A');
+  grd.addColorStop(1, '#0E2E06');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, h*.78, w, h);
+
+  // ── Moon ─────────────────────────────────────────────
   ctx.save();
-  ctx.shadowColor = '#FFD700';
-  ctx.shadowBlur  = 28;
-  ctx.fillStyle   = '#FFF176';
-  ctx.beginPath();
-  ctx.arc(w - 52, 62, 30, 0, Math.PI*2);
-  ctx.fill();
+  ctx.shadowColor = '#FFF9C4'; ctx.shadowBlur = 22;
+  ctx.fillStyle = '#FFFDE7';
+  ctx.beginPath(); ctx.arc(w-44, 58, 20, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(195,180,130,0.28)';
+  ctx.beginPath(); ctx.arc(w-52, 52, 5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(w-37, 62, 3, 0, Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // Sun rays
+  // ── Twinkling stars ───────────────────────────────────
+  STARS_BG.forEach(s => {
+    const tw = 0.55 + 0.45 * Math.sin(now * 2.1 + s.rx * 12);
+    ctx.fillStyle = `rgba(255,255,210,${tw.toFixed(2)})`;
+    ctx.beginPath(); ctx.arc(s.rx*w, s.ry*h, s.r, 0, Math.PI*2); ctx.fill();
+  });
+
+  // ── Birthday bunting (below HUD ~y58) ─────────────────
+  drawBunting(w, 58);
+
+  // ── Swaying background balloons ───────────────────────
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,235,59,0.35)';
-  ctx.lineWidth   = 3;
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2;
-    ctx.beginPath();
-    ctx.moveTo(w-52 + Math.cos(a)*34, 62 + Math.sin(a)*34);
-    ctx.lineTo(w-52 + Math.cos(a)*52, 62 + Math.sin(a)*52);
-    ctx.stroke();
-  }
+  ctx.globalAlpha = 0.68;
+  BALLOONS_BG.forEach((b, i) => {
+    const sway = Math.sin(now * 0.75 + i * 1.3) * 5;
+    drawBalloon(b.rx*w + sway, b.ry*h, b.col, b.r);
+  });
   ctx.restore();
 
-  // Clouds
-  ctx.fillStyle = 'rgba(255,255,255,.82)';
-  CLOUDS.forEach(c => drawCloud(c.rx*w, c.ry*h, c.r));
+  // ── Colosseum silhouette ──────────────────────────────
+  drawColosseum(w, h);
 
-  // Hills (back)
-  ctx.fillStyle = '#66BB6A';
-  ctx.beginPath();
-  ctx.moveTo(0, h*.75);
-  ctx.bezierCurveTo(w*.15,h*.55, w*.35,h*.65, w*.5,h*.75);
-  ctx.bezierCurveTo(w*.65,h*.85, w*.82,h*.7,  w,   h*.76);
-  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
-  ctx.fill();
-
-  // Hills (front)
-  ctx.fillStyle = '#4CAF50';
-  ctx.beginPath();
-  ctx.moveTo(0, h*.88);
-  ctx.bezierCurveTo(w*.2,h*.78, w*.42,h*.86, w*.6,h*.88);
-  ctx.bezierCurveTo(w*.78,h*.90, w*.9,h*.83, w,   h*.88);
-  ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
-  ctx.fill();
-
-  // Ground
-  ctx.fillStyle = '#388E3C';
-  ctx.fillRect(0, h*.93, w, h);
-
-  // Italian flag strip
+  // ── Italian flag strip ────────────────────────────────
   const fh = 13, fy = h - fh;
-  ctx.fillStyle = '#009246'; ctx.fillRect(0,    fy, w/3, fh);
-  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(w/3,  fy, w/3, fh);
-  ctx.fillStyle = '#CE2B37'; ctx.fillRect(w*2/3,fy, w/3, fh);
+  ctx.fillStyle = '#009246'; ctx.fillRect(0,     fy, w/3, fh);
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(w/3,   fy, w/3, fh);
+  ctx.fillStyle = '#CE2B37'; ctx.fillRect(w*2/3, fy, w/3, fh);
 }
 
-function drawCloud(x, y, r) {
+function drawBunting(w, topY) {
+  const cols = ['#009246','#FFFFFF','#CE2B37','#FFD700','#FF69B4',
+                '#CE2B37','#FFFFFF','#009246','#FFD700','#FF69B4'];
+  const n = cols.length, sw = w / n, fh = 26;
+
+  // Drooping string
+  ctx.strokeStyle = 'rgba(50,25,5,0.55)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.arc(x,        y,       r*.55, 0, Math.PI*2);
-  ctx.arc(x+r*.42,  y-r*.1,  r*.44, 0, Math.PI*2);
-  ctx.arc(x+r*.85,  y,       r*.48, 0, Math.PI*2);
-  ctx.arc(x+r*.42,  y+r*.28, r*.36, 0, Math.PI*2);
-  ctx.fill();
+  for (let i = 0; i <= n*4; i++) {
+    const t = i / (n*4);
+    const sx = t * w;
+    const sy = topY + Math.sin(t * Math.PI * n) * 1.5 + Math.sin(t * Math.PI) * 5;
+    i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+  }
+  ctx.stroke();
+
+  // Triangular flags
+  cols.forEach((col, i) => {
+    const x1 = i*sw, x2 = (i+1)*sw, mx = (x1+x2)/2;
+    const sag = Math.sin(((i+.5)/n) * Math.PI) * 5;
+    const ty = topY + sag;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(x1+sw*.12, ty); ctx.lineTo(x2-sw*.12, ty); ctx.lineTo(mx, ty+fh);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 0.7; ctx.stroke();
+  });
+}
+
+function drawBalloon(x, y, col, r) {
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.ellipse(x, y, r, r*1.28, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.36)';
+  ctx.beginPath(); ctx.ellipse(x-r*.28, y-r*.3, r*.27, r*.2, -.35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(x, y+r*1.35, r*.16, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y+r*1.5);
+  ctx.bezierCurveTo(x+r*.9, y+r*2.5, x-r*.9, y+r*3.5, x, y+r*4.3);
+  ctx.stroke();
+}
+
+function drawColosseum(w, h) {
+  const cx = w/2, baseY = h*0.80, bw = w*0.86, bh = h*0.28;
+  const stone = '#B8762A', dark = 'rgba(8,4,1,0.80)';
+
+  // Main body
+  ctx.fillStyle = stone;
+  ctx.fillRect(cx-bw/2, baseY-bh, bw, bh);
+
+  // Top battlements
+  const nb = 20, bsW = bw/nb, bsH = bsW*0.85;
+  for (let i = 0; i < nb; i++)
+    if (i%2===0) { ctx.fillStyle=stone; ctx.fillRect(cx-bw/2+i*bsW, baseY-bh-bsH, bsW*.75, bsH); }
+
+  // Horizontal dividers
+  ctx.fillStyle = 'rgba(70,35,5,0.32)';
+  ctx.fillRect(cx-bw/2, baseY-bh*.52, bw, bh*.026);
+  ctx.fillRect(cx-bw/2, baseY-bh*.76, bw, bh*.020);
+
+  // Bottom row — 9 arches
+  const g1 = bw/9.6;
+  for (let i = 0; i < 9; i++) {
+    const ax=cx-bw/2+g1*(i+.8), ar=g1*.31, ay=baseY-bh*.40;
+    ctx.fillStyle=dark;
+    ctx.beginPath(); ctx.rect(ax-ar,ay,ar*2,bh*.36); ctx.fill();
+    ctx.beginPath(); ctx.arc(ax,ay,ar,Math.PI,0);    ctx.fill();
+  }
+
+  // Upper row — 7 arches
+  const g2 = bw/7.6;
+  for (let i = 0; i < 7; i++) {
+    const ax=cx-bw/2+g2*(i+.8), ar=g2*.28, ay=baseY-bh*.70;
+    ctx.fillStyle=dark;
+    ctx.beginPath(); ctx.rect(ax-ar,ay,ar*2,bh*.20); ctx.fill();
+    ctx.beginPath(); ctx.arc(ax,ay,ar,Math.PI,0);    ctx.fill();
+  }
 }
 
 // ══════════════════════════════════════════════════════════
